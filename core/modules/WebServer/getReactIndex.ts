@@ -42,34 +42,64 @@ const devModulesScript = `<script type="module">
 
 
 //Custom themes placeholder
-export const tmpDefaultTheme = 'dark';
+export const tmpDefaultTheme = 'ausnetworks';
 export const tmpDefaultThemes = ['dark', 'light'];
 export const tmpCustomThemes: ThemeType[] = [
-    // {
-    //     name: 'deep-purple',
-    //     isDark: true,
-    //     style: {
-    //         "background": "274 93% 39%",
-    //         "foreground": "269 9% 100%",
-    //         "card": "274 79% 53%",
-    //         "card-foreground": "270 48% 99%",
-    //         "popover": "240 10% 3.9%",
-    //         "popover-foreground": "270 48% 99%",
-    //         "primary": "270 48% 99%",
-    //         "primary-foreground": "240 5.9% 10%",
-    //         "secondary": "240 3.7% 15.9%",
-    //         "secondary-foreground": "270 48% 99%",
-    //         "muted": "240 3.7% 15.9%",
-    //         "muted-foreground": "240 5% 64.9%",
-    //         "accent": "240 3.7% 15.9%",
-    //         "accent-foreground": "270 48% 99%",
-    //         "destructive": "0 62.8% 30.6%",
-    //         "destructive-foreground": "270 48% 99%",
-    //         "border": "273 79%, 53%",
-    //         "input": "240 3.7% 15.9%",
-    //         "ring": "240 4.9% 83.9%",
-    //     }
-    // }
+    //AusNetworks brand theme. Values are taken directly from the palette in
+    //ausnetworks.net's stylesheet (--color-bg, --color-teal, etc.) and
+    //converted to the "H S% L%" triplets txAdmin expects, so the panel and
+    //the website stay in step. Update both together if the brand changes.
+    {
+        name: 'ausnetworks',
+        isDark: true,
+        style: {
+            //Surfaces: near-black, matching --color-bg / --color-surface*
+            "background": "0 0% 0%",
+            "foreground": "0 0% 96.1%",
+            "card": "0 0% 3.9%",
+            "card-foreground": "0 0% 96.1%",
+            "popover": "0 0% 6.7%",
+            "popover-foreground": "0 0% 96.1%",
+
+            //Primary: the site's teal accent (#00d2b4). Foreground is near
+            //black because white text on this teal fails contrast.
+            "primary": "171.4 100% 41.2%",
+            "primary-foreground": "0 0% 4%",
+
+            "secondary": "0 0% 9%",
+            "secondary-foreground": "0 0% 96.1%",
+            "muted": "0 0% 12.2%",
+            "muted-foreground": "0 0% 54.5%",
+            "accent": "0 0% 12.2%",
+            "accent-foreground": "0 0% 96.1%",
+
+            //Lines and controls: --color-line / --color-line-2
+            "border": "0 0% 12.2%",
+            "input": "0 0% 16.5%",
+            "ring": "171.4 100% 41.2%",
+
+            //Status colours, all from the site palette
+            "destructive": "359.3 100% 65.1%",
+            "destructive-foreground": "0 0% 96.1%",
+            "destructive-hint": "359.3 40% 14%",
+            "destructive-inline": "359.3 100% 72%",
+
+            "success": "151 74.2% 52.9%",
+            "success-foreground": "0 0% 4%",
+            "success-hint": "151 40% 12%",
+            "success-inline": "151 74.2% 60%",
+
+            "warning": "38.7 100% 56.3%",
+            "warning-foreground": "0 0% 4%",
+            "warning-hint": "38.7 40% 13%",
+            "warning-inline": "38.7 100% 63%",
+
+            "info": "234.9 85.6% 64.7%",
+            "info-foreground": "0 0% 96.1%",
+            "info-hint": "234.9 40% 16%",
+            "info-inline": "234.9 85.6% 72%",
+        }
+    }
 ];
 
 
@@ -173,7 +203,16 @@ export default async function getReactIndex(ctx: CtxWithVars | AuthedCtx) {
     }
 
     //Setting the theme class from the cookie
-    let htmlClasses = tmpDefaultTheme;
+    //AusNetworks: a custom theme needs BOTH the light/dark base class and its
+    //own theme-<name> class. Upstream assigned tmpDefaultTheme directly, which
+    //only produces a valid class list for the built-in 'dark'/'light' names.
+    const resolveThemeClasses = (themeName: string) => {
+        if (tmpDefaultThemes.includes(themeName)) return themeName;
+        const custom = tmpCustomThemes.find((t) => t.name === themeName);
+        if (!custom) return 'dark';
+        return `${custom.isDark ? 'dark' : 'light'} theme-${custom.name}`;
+    };
+    let htmlClasses = resolveThemeClasses(tmpDefaultTheme);
     const themeCookie = ctx.cookies.get(consts.cookies.theme);
     if (themeCookie) {
         if (tmpDefaultThemes.includes(themeCookie)) {
@@ -181,7 +220,7 @@ export default async function getReactIndex(ctx: CtxWithVars | AuthedCtx) {
         } else {
             const selectedCustomTheme = tmpCustomThemes.find((theme) => theme.name === themeCookie);
             if (!selectedCustomTheme) {
-                htmlClasses = tmpDefaultTheme;
+                htmlClasses = resolveThemeClasses(tmpDefaultTheme);
             } else {
                 const lightDarkSelector = selectedCustomTheme.isDark ? 'dark' : 'light';
                 htmlClasses = `${lightDarkSelector} theme-${selectedCustomTheme.name}`;
