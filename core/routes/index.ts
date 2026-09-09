@@ -13,6 +13,7 @@ export { default as auth_providerRedirect } from './authentication/providerRedir
 export { default as auth_providerCallback } from './authentication/providerCallback';
 export { default as auth_discordRedirect } from './authentication/discordRedirect';
 export { default as auth_discordCallback } from './authentication/discordCallback';
+export { default as auth_discordHandoff } from './authentication/discordHandoff';
 export { default as auth_verifyPassword } from './authentication/verifyPassword';
 export { default as auth_changePassword } from './authentication/changePassword';
 export { default as auth_self } from './authentication/self';

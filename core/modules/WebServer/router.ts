@@ -48,6 +48,7 @@ export default () => {
     router.post('/auth/cfxre/callback', authLimiter, routes.auth_providerCallback);
     router.get('/auth/discord/redirect', authLimiter, routes.auth_discordRedirect);
     router.post('/auth/discord/callback', authLimiter, routes.auth_discordCallback);
+    router.get('/auth/discord/handoff', authLimiter, routes.auth_discordHandoff);
     router.post('/auth/changePassword', apiAuthMw, routes.auth_changePassword);
     router.get('/auth/getIdentifiers', apiAuthMw, routes.auth_getIdentifiers);
     router.post('/auth/changeIdentifiers', apiAuthMw, routes.auth_changeIdentifiers);
