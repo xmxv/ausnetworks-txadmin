@@ -94,7 +94,7 @@ export default async function AuthDiscordCallback(ctx: InitializedCtx) {
             type: 'discord',
             username: vaultAdmin.name,
             csrfToken: txCore.adminStore.genCsrfToken(),
-            expiresAt: Date.now() + 86_400_000, //24h
+            expiresAt: Date.now() + 8 * 60 * 60 * 1000, //8h
             identifier: userInfo.identifier,
         } satisfies DiscordSessAuthType;
         ctx.sessTools.set({ auth: sessData });

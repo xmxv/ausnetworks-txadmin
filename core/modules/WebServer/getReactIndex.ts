@@ -7,6 +7,7 @@ import { AuthedCtx, CtxWithVars } from "./ctxTypes";
 import consts from "@shared/consts";
 import consoleFactory from '@lib/console';
 import { isDirectLocalRequest } from '@lib/isDirectLocalRequest';
+import { ausnetworksBrandCss } from './ausnetworksBrand';
 import { AuthedAdminType, checkRequestAuth } from "./authLogic";
 import { isString } from "@modules/CacheStore";
 import {
@@ -201,6 +202,11 @@ export default async function getReactIndex(ctx: CtxWithVars | AuthedCtx) {
         }
         replacers.customThemesStyle = `<style>${escapeHtmlRawText(cssThemes.join('\n'))}</style>`;
     }
+
+    //AusNetworks: brand styling that colour tokens alone cannot express -
+    //typography, radius, gradients and surface treatment. Appended after the
+    //theme variables so it can reference them.
+    replacers.customThemesStyle += `<style>${escapeHtmlRawText(ausnetworksBrandCss)}</style>`;
 
     //Setting the theme class from the cookie
     //AusNetworks: a custom theme needs BOTH the light/dark base class and its
