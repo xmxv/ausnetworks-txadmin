@@ -5,6 +5,7 @@ import ServerControls from './ServerControls';
 import ServerStatus from './ServerStatus';
 import ServerSchedule from './ServerSchedule';
 import DynamicAdvert from '@/components/DynamicAdvert';
+import AusnetNav from './AusnetNav';
 
 
 type ServerSidebarProps = {
@@ -18,6 +19,13 @@ export function ServerSidebar({ isSheet }: ServerSidebarProps) {
                 isSheet ? 'px-4 py-6' : 'tx-sidebar hidden lg:flex',
             )}
         >
+            {/* AusNetworks: page navigation lives here rather than the top
+                bar, matching the website's admin panel. */}
+            <div className={cn(
+                !isSheet && 'rounded-xl border bg-card text-card-foreground shadow-sm p-3',
+            )}>
+                <AusnetNav />
+            </div>
             <div className={cn(
                 !isSheet && 'rounded-xl border bg-card text-card-foreground shadow-sm p-4',
             )}>

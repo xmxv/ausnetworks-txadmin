@@ -191,7 +191,10 @@ export function Header() {
                         <ServerTitle />
                     </div>
                     <nav className="hidden lg:block flex-grow">
-                        <DesktopNavbar />
+                        {/* AusNetworks: navigation moved into the left rail (AusnetNav).
+                            Hidden rather than deleted so the mobile sheet and any
+                            upstream changes to it stay intact. */}
+                        <div className="hidden"><DesktopNavbar /></div>
                     </nav>
                 </div>
 
