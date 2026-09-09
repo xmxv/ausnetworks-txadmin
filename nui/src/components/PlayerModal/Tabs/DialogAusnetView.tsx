@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Box,
+  Button,
   Chip,
   CircularProgress,
   DialogContent,
@@ -10,24 +11,37 @@ import {
   TableCell,
   TableHead,
   TableRow,
+  Tooltip,
   Typography,
 } from "@mui/material";
-import { usePlayerDetailsValue } from "../../../state/playerDetails.state";
+import {
+  ContentCopy,
+  Inventory2,
+  Refresh,
+  DirectionsCar,
+  AccountBalanceWallet,
+} from "@mui/icons-material";
+import { useSnackbar } from "notistack";
+import { useAssociatedPlayerValue } from "../../../state/playerDetails.state";
 import { useNuiEvent } from "../../../hooks/useNuiEvent";
 import { fetchNui } from "../../../utils/fetchNui";
-import { DialogLoadError } from "./DialogLoadError";
 
 /*
- * AusNetworks: player intelligence tab.
+ * AusNetworks: player profile tab.
  *
  * Renders whatever the ausnet-admin resource returns, via the bridge in
  * resource/menu/{server,client}/*_ausnet.lua. This component knows nothing
- * about Qbox, ox_inventory or our schema - if the shape of the data changes,
- * it changes in that resource, not in this fork.
+ * about Qbox, ox_inventory or our schema - if the data shape changes, it
+ * changes in that resource, not in this fork.
+ *
+ * The target player id comes from useAssociatedPlayerValue, NOT from
+ * playerDetails. playerDetails is the fetched detail response and has no
+ * server id on it; reading from it silently yielded undefined and left the
+ * tab spinning forever.
  *
  * Sections are driven by what the server chose to send. An admin without
- * ausnet.player_inventory never receives the inventory at all, so hiding it
- * here is presentation, not the security boundary.
+ * ausnet.player_inventory never receives inventory data at all, so hiding it
+ * here is presentation - the permission boundary is server-side.
  */
 
 type TrustLevel = "trusted" | "neutral" | "watch" | "suspect" | "unknown";
@@ -44,41 +58,60 @@ const ERROR_TEXT: Record<string, string> = {
   noperm: "You do not have permission to view this player's data.",
   unavailable:
     "The ausnet-admin resource is not running, so player data is unavailable.",
-  notfound: "No character record found for this player.",
-  error: "Something went wrong reading this player's data. Check the server console.",
+  notfound:
+    "No character record found for this player. They may not have loaded a character yet.",
+  error:
+    "Something went wrong reading this player's data. Check the server console.",
+  timeout:
+    "The server did not respond. ausnet-admin may be stopped, or the player may have disconnected.",
 };
 
 const money = (n?: number) =>
   typeof n === "number" ? "$" + n.toLocaleString() : "-";
 
-const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <Typography
-    sx={{
-      fontSize: 10.5,
-      fontWeight: 600,
-      letterSpacing: ".2em",
-      textTransform: "uppercase",
-      color: "#525252",
-      mt: 2.5,
-      mb: 0.75,
-    }}
-  >
-    {children}
-  </Typography>
+const SectionTitle: React.FC<{
+  children: React.ReactNode;
+  icon?: React.ReactNode;
+}> = ({ children, icon }) => (
+  <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, mt: 2.5, mb: 1 }}>
+    {icon}
+    <Typography
+      sx={{
+        fontSize: 10.5,
+        fontWeight: 600,
+        letterSpacing: ".2em",
+        textTransform: "uppercase",
+        color: "#525252",
+      }}
+    >
+      {children}
+    </Typography>
+  </Box>
 );
 
 const Stat: React.FC<{ label: string; value: React.ReactNode }> = ({
   label,
   value,
 }) => (
-  <Box sx={{ minWidth: 110 }}>
+  <Box
+    sx={{
+      flex: "1 1 120px",
+      minWidth: 120,
+      p: 1.5,
+      borderRadius: "12px",
+      border: "1px solid #1f1f1f",
+      background:
+        "linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.012))",
+    }}
+  >
     <Typography sx={{ fontSize: 12, color: "#8b8b8b" }}>{label}</Typography>
     <Typography
       sx={{
-        fontSize: 18,
+        fontSize: 20,
         fontWeight: 600,
         color: "#fff",
         fontVariantNumeric: "tabular-nums",
+        lineHeight: 1.3,
       }}
     >
       {value}
@@ -86,33 +119,80 @@ const Stat: React.FC<{ label: string; value: React.ReactNode }> = ({
   </Box>
 );
 
+const TH: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <TableCell
+    sx={{
+      fontSize: 10.5,
+      letterSpacing: ".18em",
+      textTransform: "uppercase",
+      color: "#6b6b6b",
+      fontWeight: 600,
+      borderBottom: "1px solid #1f1f1f",
+      py: 1,
+    }}
+  >
+    {children}
+  </TableCell>
+);
+
 const DialogAusnetView: React.FC = () => {
-  const playerDetails = usePlayerDetailsValue();
+  const assocPlayer = useAssociatedPlayerValue();
+  const { enqueueSnackbar } = useSnackbar();
   const [data, setData] = useState<any>(null);
   const [storage, setStorage] = useState<any>(null);
+  const timeoutRef = useRef<number | null>(null);
 
-  const serverId =
-    "player" in playerDetails ? playerDetails.player?.id : undefined;
+  const serverId = assocPlayer?.id;
 
-  useNuiEvent<any>("setAusnetPlayerData", setData);
+  useNuiEvent<any>("setAusnetPlayerData", (payload) => {
+    if (timeoutRef.current) window.clearTimeout(timeoutRef.current);
+    setData(payload);
+  });
   useNuiEvent<any>("setAusnetVehicleStorage", setStorage);
 
-  useEffect(() => {
+  const load = React.useCallback(() => {
     if (serverId === undefined) return;
     setData(null);
     setStorage(null);
-    fetchNui("ausnetPlayerData", { id: serverId }).catch(() => {
-      setData({ error: "error" });
-    });
+    // The bridge is fire-and-forget over a net event, so nothing guarantees a
+    // reply. Without this the tab spins forever when the resource is stopped
+    // or the player disconnects mid-request.
+    if (timeoutRef.current) window.clearTimeout(timeoutRef.current);
+    timeoutRef.current = window.setTimeout(
+      () => setData({ error: "timeout" }),
+      8000
+    );
+    fetchNui("ausnetPlayerData", { id: serverId }).catch(() =>
+      setData({ error: "error" })
+    );
   }, [serverId]);
 
-  if ("error" in playerDetails) return <DialogLoadError />;
+  useEffect(() => {
+    load();
+    return () => {
+      if (timeoutRef.current) window.clearTimeout(timeoutRef.current);
+    };
+  }, [load]);
+
+  const copy = (label: string, value?: string) => {
+    if (!value) return;
+    navigator.clipboard?.writeText(value);
+    enqueueSnackbar(`${label} copied`, { variant: "success" });
+  };
+
+  if (serverId === undefined) {
+    return (
+      <DialogContent>
+        <Typography sx={{ color: "#8b8b8b", pt: 2 }}>
+          No player selected.
+        </Typography>
+      </DialogContent>
+    );
+  }
 
   if (!data) {
     return (
-      <DialogContent
-        sx={{ display: "flex", justifyContent: "center", pt: 6 }}
-      >
+      <DialogContent sx={{ display: "flex", justifyContent: "center", pt: 6 }}>
         <CircularProgress size={28} sx={{ color: "#00d2b4" }} />
       </DialogContent>
     );
@@ -121,32 +201,53 @@ const DialogAusnetView: React.FC = () => {
   if (data.error) {
     return (
       <DialogContent>
-        <Typography sx={{ color: "#8b8b8b", pt: 2 }}>
+        <Typography sx={{ color: "#8b8b8b", pt: 2, mb: 2 }}>
           {ERROR_TEXT[data.error] ?? "Player data unavailable."}
         </Typography>
+        <Button
+          size="small"
+          variant="outlined"
+          startIcon={<Refresh />}
+          onClick={load}
+        >
+          Retry
+        </Button>
       </DialogContent>
     );
   }
 
   const eco = data.economy;
   const trust = data.trust;
+  const vehicles = data.vehicles ?? [];
 
   return (
-    <DialogContent sx={{ pb: 3 }}>
-      {trust && (
-        <>
-          <SectionTitle>Trust</SectionTitle>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+    <DialogContent sx={{ pb: 2 }}>
+      {/* Identity header */}
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
+        <Box sx={{ minWidth: 0 }}>
+          <Typography sx={{ fontSize: 20, fontWeight: 600, color: "#fff", lineHeight: 1.2 }}>
+            {eco?.name ?? assocPlayer.displayName}
+          </Typography>
+          <Typography sx={{ fontSize: 12, color: "#8b8b8b", fontFamily: "monospace" }}>
+            {data.citizenid}
+          </Typography>
+        </Box>
+        {trust && (
+          <Tooltip
+            title={
+              trust.available
+                ? trust.reasons?.join(" · ") || "No flags"
+                : "The anticheat has not registered a trust provider"
+            }
+          >
             <Chip
               size="small"
               label={
                 trust.available
                   ? `${trust.level.toUpperCase()}${
-                      trust.score !== null && trust.score !== undefined
-                        ? ` · ${trust.score}`
-                        : ""
+                      trust.score != null ? ` · ${trust.score}` : ""
                     }`
-                  : "NO PROVIDER"
+                  : "TRUST N/A"
               }
               sx={{
                 color: TRUST_COLOURS[trust.level as TrustLevel] ?? "#8b8b8b",
@@ -157,69 +258,53 @@ const DialogAusnetView: React.FC = () => {
                 fontSize: 11.5,
               }}
             />
-            <Typography sx={{ fontSize: 12.5, color: "#8b8b8b" }}>
-              {trust.available
-                ? trust.reasons?.join(" · ") || "No flags"
-                : "The anticheat has not registered a trust provider."}
-            </Typography>
-          </Box>
-        </>
+          </Tooltip>
+        )}
+      </Box>
+
+      {/* Headline numbers */}
+      {eco && (
+        <Box sx={{ display: "flex", gap: 1.25, flexWrap: "wrap", mt: 2 }}>
+          <Stat label="Cash" value={money(eco.cash)} />
+          <Stat label="Bank" value={money(eco.bank)} />
+          <Stat label="Net worth" value={money(eco.netWorth)} />
+          <Stat label="Vehicles" value={vehicles.length} />
+        </Box>
       )}
 
       {eco && (
-        <>
-          <SectionTitle>Economy</SectionTitle>
-          <Box sx={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
-            <Stat label="Cash" value={money(eco.cash)} />
-            <Stat label="Bank" value={money(eco.bank)} />
-            <Stat label="Net worth" value={money(eco.netWorth)} />
-            {eco.crypto > 0 && <Stat label="Crypto" value={eco.crypto} />}
-          </Box>
-          <Typography sx={{ fontSize: 12.5, color: "#8b8b8b", mt: 1 }}>
-            {eco.name} · {eco.job?.name ?? "Unemployed"}
-            {eco.job?.grade ? ` (${eco.job.grade})` : ""}
-            {eco.job?.onduty ? " · on duty" : ""}
-            {eco.gang?.name && eco.gang.name !== "none"
-              ? ` · gang: ${eco.gang.name}`
-              : ""}
-          </Typography>
-        </>
+        <Typography sx={{ fontSize: 13, color: "#8b8b8b", mt: 1.5 }}>
+          {eco.job?.name ?? "Unemployed"}
+          {eco.job?.grade ? ` (${eco.job.grade})` : ""}
+          {eco.job?.onduty ? " · on duty" : ""}
+          {eco.gang?.name && eco.gang.name !== "none" ? ` · gang: ${eco.gang.name}` : ""}
+          {eco.flags?.isDead ? " · DEAD" : ""}
+          {eco.flags?.jailTime > 0 ? ` · jailed (${eco.flags.jailTime})` : ""}
+        </Typography>
       )}
 
-      <SectionTitle>Vehicles ({data.vehicles?.length ?? 0})</SectionTitle>
-      {data.vehicles?.length ? (
+      {/* Vehicles */}
+      <SectionTitle icon={<DirectionsCar sx={{ fontSize: 15, color: "#00d2b4" }} />}>
+        Vehicles ({vehicles.length})
+      </SectionTitle>
+      {vehicles.length ? (
         <Table size="small">
           <TableHead>
             <TableRow>
-              {["Plate", "Model", "Garage", "State", "Engine", "Body", "Storage"].map(
-                (h) => (
-                  <TableCell
-                    key={h}
-                    sx={{
-                      fontSize: 10.5,
-                      letterSpacing: ".18em",
-                      textTransform: "uppercase",
-                      color: "#6b6b6b",
-                      borderBottom: "1px solid #1f1f1f",
-                    }}
-                  >
-                    {h}
-                  </TableCell>
-                )
-              )}
+              {["Plate", "Model", "Garage", "State", "Eng", "Body", "Stored"].map((h) => (
+                <TH key={h}>{h}</TH>
+              ))}
             </TableRow>
           </TableHead>
           <TableBody>
-            {data.vehicles.map((v: any) => (
+            {vehicles.map((v: any) => (
               <TableRow
                 key={v.id}
                 hover
-                sx={{
-                  cursor: data.perms?.inventory ? "pointer" : "default",
-                }}
+                sx={{ cursor: data.perms?.inventory ? "pointer" : "default" }}
                 onClick={() => {
-                  if (!data.perms?.inventory || serverId === undefined) return;
-                  setStorage({ loading: true, id: v.id });
+                  if (!data.perms?.inventory) return;
+                  setStorage(null);
                   fetchNui("ausnetVehicleStorage", {
                     id: serverId,
                     vehicleId: v.id,
@@ -232,10 +317,14 @@ const DialogAusnetView: React.FC = () => {
                 <TableCell sx={{ color: "#d4d4d4" }}>{v.model}</TableCell>
                 <TableCell sx={{ color: "#d4d4d4" }}>{v.garage}</TableCell>
                 <TableCell sx={{ color: "#d4d4d4" }}>{v.state}</TableCell>
-                <TableCell sx={{ color: "#d4d4d4" }}>{v.enginePct}%</TableCell>
-                <TableCell sx={{ color: "#d4d4d4" }}>{v.bodyPct}%</TableCell>
+                <TableCell sx={{ color: v.enginePct < 40 ? "#ffb020" : "#d4d4d4" }}>
+                  {v.enginePct}%
+                </TableCell>
+                <TableCell sx={{ color: v.bodyPct < 40 ? "#ffb020" : "#d4d4d4" }}>
+                  {v.bodyPct}%
+                </TableCell>
                 <TableCell sx={{ color: "#8b8b8b" }}>
-                  {v.gloveboxCount + v.trunkCount} items
+                  {v.gloveboxCount + v.trunkCount}
                 </TableCell>
               </TableRow>
             ))}
@@ -246,22 +335,26 @@ const DialogAusnetView: React.FC = () => {
           This player owns no vehicles.
         </Typography>
       )}
+      {vehicles.length > 0 && data.perms?.inventory && !storage && (
+        <Typography sx={{ fontSize: 11.5, color: "#5c5c5c", mt: 0.5 }}>
+          Select a vehicle to view its glovebox and trunk.
+        </Typography>
+      )}
 
-      {storage && !storage.loading && !storage.error && (
+      {/* Vehicle storage, on demand */}
+      {storage && !storage.error && (
         <>
-          <SectionTitle>
-            {storage.plate} contents
+          <SectionTitle icon={<Inventory2 sx={{ fontSize: 15, color: "#00d2b4" }} />}>
+            {storage.plate} · {storage.model}
           </SectionTitle>
-          {["trunk", "glovebox"].map((where) => (
+          {(["trunk", "glovebox"] as const).map((where) => (
             <Box key={where} sx={{ mb: 1 }}>
-              <Typography sx={{ fontSize: 12, color: "#8b8b8b", mb: 0.5 }}>
+              <Typography sx={{ fontSize: 12, color: "#8b8b8b", mb: 0.25, textTransform: "capitalize" }}>
                 {where} ({storage[where]?.length ?? 0})
               </Typography>
               <Typography sx={{ fontSize: 13, color: "#d4d4d4" }}>
                 {storage[where]?.length
-                  ? storage[where]
-                      .map((i: any) => `${i.label} x${i.count}`)
-                      .join(", ")
+                  ? storage[where].map((i: any) => `${i.label} x${i.count}`).join(", ")
                   : "empty"}
               </Typography>
             </Box>
@@ -269,24 +362,98 @@ const DialogAusnetView: React.FC = () => {
         </>
       )}
 
+      {/* Player inventory */}
       {data.inventory && (
         <>
-          <Divider sx={{ mt: 2, borderColor: "#1f1f1f" }} />
-          <SectionTitle>
+          <SectionTitle icon={<Inventory2 sx={{ fontSize: 15, color: "#00d2b4" }} />}>
             Inventory ({data.inventory.items?.length ?? 0})
           </SectionTitle>
           <Typography sx={{ fontSize: 13, color: "#d4d4d4" }}>
             {data.inventory.items?.length
-              ? data.inventory.items
-                  .map((i: any) => `${i.label} x${i.count}`)
-                  .join(", ")
+              ? data.inventory.items.map((i: any) => `${i.label} x${i.count}`).join(", ")
               : "empty"}
-          </Typography>
-          <Typography sx={{ fontSize: 11.5, color: "#5c5c5c", mt: 0.5 }}>
-            source: {data.inventory.source}
           </Typography>
         </>
       )}
+
+      {/* Bank accounts and recent flow */}
+      {eco?.bankAccounts?.length > 0 && (
+        <>
+          <SectionTitle icon={<AccountBalanceWallet sx={{ fontSize: 15, color: "#00d2b4" }} />}>
+            Other accounts
+          </SectionTitle>
+          <Typography sx={{ fontSize: 13, color: "#d4d4d4" }}>
+            {eco.bankAccounts
+              .map((a: any) => `${a.account_name}: ${money(a.account_balance)}`)
+              .join(" · ")}
+          </Typography>
+        </>
+      )}
+
+      {eco?.recentTransactions?.length > 0 && (
+        <>
+          <SectionTitle>Recent transactions</SectionTitle>
+          <Table size="small">
+            <TableBody>
+              {eco.recentTransactions.slice(0, 8).map((tx: any, i: number) => (
+                <TableRow key={i}>
+                  <TableCell sx={{ color: "#8b8b8b", fontSize: 12.5, border: 0, py: 0.4 }}>
+                    {tx.description || tx.type}
+                  </TableCell>
+                  <TableCell
+                    align="right"
+                    sx={{
+                      border: 0,
+                      py: 0.4,
+                      fontVariantNumeric: "tabular-nums",
+                      color: (tx.amount ?? 0) < 0 ? "#ff4d4f" : "#2ee08a",
+                    }}
+                  >
+                    {money(tx.amount)}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </>
+      )}
+
+      {/* Actions */}
+      <Divider sx={{ mt: 2.5, mb: 1.5, borderColor: "#1f1f1f" }} />
+      <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+        <Button size="small" variant="outlined" startIcon={<Refresh />} onClick={load}>
+          Refresh
+        </Button>
+        <Button
+          size="small"
+          variant="outlined"
+          startIcon={<ContentCopy />}
+          onClick={() => copy("CitizenID", data.citizenid)}
+        >
+          Copy CitizenID
+        </Button>
+        <Button
+          size="small"
+          variant="outlined"
+          startIcon={<ContentCopy />}
+          onClick={() =>
+            copy(
+              "Summary",
+              [
+                `${eco?.name ?? assocPlayer.displayName} (${data.citizenid})`,
+                `Cash ${money(eco?.cash)} · Bank ${money(eco?.bank)}`,
+                `Job: ${eco?.job?.name ?? "none"}`,
+                `Vehicles: ${vehicles.length}`,
+                trust?.available ? `Trust: ${trust.level} ${trust.score ?? ""}` : null,
+              ]
+                .filter(Boolean)
+                .join("\n")
+            )
+          }
+        >
+          Copy summary
+        </Button>
+      </Box>
     </DialogContent>
   );
 };
