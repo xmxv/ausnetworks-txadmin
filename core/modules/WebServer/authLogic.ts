@@ -132,9 +132,20 @@ const validCfxreSessAuthSchema = z.object({
 });
 export type CfxreSessAuthType = z.infer<typeof validCfxreSessAuthSchema>;
 
+//AusNetworks addition: Discord OAuth sessions.
+const validDiscordSessAuthSchema = z.object({
+    type: z.literal('discord'),
+    username: z.string(),
+    csrfToken: z.string(),
+    expiresAt: z.number(),
+    identifier: z.string(),
+});
+export type DiscordSessAuthType = z.infer<typeof validDiscordSessAuthSchema>;
+
 const validSessAuthSchema = z.discriminatedUnion('type', [
     validPassSessAuthSchema,
-    validCfxreSessAuthSchema
+    validCfxreSessAuthSchema,
+    validDiscordSessAuthSchema
 ]);
 
 
@@ -196,6 +207,16 @@ export const normalAuthLogic = (
                 || vaultAdmin.providers.citizenfx.identifier !== sessAuth.identifier
             ) {
                 return failResp(`Cfxre identifier doesn't match for '${sessAuth.username}'.`);
+            }
+            return successResp(vaultAdmin, sessAuth.csrfToken);
+        } else if (sessAuth.type === 'discord') {
+            //Re-checked on every request: revoking an admin's Discord ID in
+            //txAdmin invalidates their existing sessions immediately.
+            if (
+                typeof vaultAdmin.providers.discord !== 'object'
+                || vaultAdmin.providers.discord.identifier !== sessAuth.identifier
+            ) {
+                return failResp(`Discord identifier doesn't match for '${sessAuth.username}'.`);
             }
             return successResp(vaultAdmin, sessAuth.csrfToken);
         } else {

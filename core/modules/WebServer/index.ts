@@ -68,7 +68,12 @@ export default class WebServer {
 
         // Some people might want to enable it, but we are not guaranteeing XFF security
         // due to the many possible ways you can connect to koa.
-        // this.app.proxy = true;
+        //AusNetworks: trust X-Forwarded-For. The panel is reached through a
+        //Cloudflare Tunnel, so without this every request appears to come
+        //from the tunnel itself, breaking rate limiting and the audit log.
+        //Only safe because txAdmin binds to loopback (txAdminInterface),
+        //so nothing but the local tunnel connector can reach it directly.
+        this.app.proxy = true;
 
         //Setting up app
         //@ts-ignore: no clue what this error is, but i'd bet it's just bad koa types
