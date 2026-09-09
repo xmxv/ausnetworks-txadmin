@@ -140,6 +140,7 @@ const DialogAusnetView: React.FC = () => {
   const { enqueueSnackbar } = useSnackbar();
   const [data, setData] = useState<any>(null);
   const [storage, setStorage] = useState<any>(null);
+  const [pinnedChar, setPinnedChar] = useState<string | undefined>(undefined);
   const timeoutRef = useRef<number | null>(null);
 
   const serverId = assocPlayer?.id;
@@ -162,10 +163,10 @@ const DialogAusnetView: React.FC = () => {
       () => setData({ error: "timeout" }),
       8000
     );
-    fetchNui("ausnetPlayerData", { id: serverId }).catch(() =>
+    fetchNui("ausnetPlayerData", { id: serverId, citizenid: pinnedChar }).catch(() =>
       setData({ error: "error" })
     );
-  }, [serverId]);
+  }, [serverId, pinnedChar]);
 
   useEffect(() => {
     load();
@@ -222,14 +223,14 @@ const DialogAusnetView: React.FC = () => {
 
   return (
     <DialogContent sx={{ pb: 2 }}>
-      {/* Identity header */}
+      {/* Account header. Trust belongs to the account, not one character. */}
       <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
         <Box sx={{ minWidth: 0 }}>
           <Typography sx={{ fontSize: 20, fontWeight: 600, color: "#fff", lineHeight: 1.2 }}>
-            {eco?.name ?? assocPlayer.displayName}
+            {data.account?.username ?? assocPlayer.displayName}
           </Typography>
           <Typography sx={{ fontSize: 12, color: "#8b8b8b", fontFamily: "monospace" }}>
-            {data.citizenid}
+            discord:{data.account?.discord || "unknown"}
           </Typography>
         </Box>
         {trust && (
@@ -261,6 +262,55 @@ const DialogAusnetView: React.FC = () => {
           </Tooltip>
         )}
       </Box>
+
+      {/* Character switcher. An account can own several characters; trust and
+          identity above are per-account, everything below is per-character. */}
+      {data.characters?.length > 0 && (
+        <>
+          <SectionTitle>
+            Characters ({data.characters.length})
+          </SectionTitle>
+          <Box sx={{ display: "flex", gap: 0.75, flexWrap: "wrap" }}>
+            {data.characters.map((c: any) => {
+              const isSel = c.citizenid === data.selectedCitizenId;
+              return (
+                <Box
+                  key={c.citizenid}
+                  onClick={() => setPinnedChar(c.citizenid)}
+                  sx={{
+                    cursor: "pointer",
+                    px: 1.25,
+                    py: 0.75,
+                    borderRadius: "10px",
+                    border: "1px solid",
+                    borderColor: isSel ? "rgba(0,210,180,.55)" : "#1f1f1f",
+                    background: isSel
+                      ? "rgba(0,210,180,.10)"
+                      : "rgba(255,255,255,.02)",
+                    "&:hover": { borderColor: "#2a2a2a" },
+                  }}
+                >
+                  <Typography
+                    sx={{
+                      fontSize: 13,
+                      color: isSel ? "#fff" : "#d4d4d4",
+                      fontWeight: isSel ? 600 : 400,
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    {c.name}
+                  </Typography>
+                  <Typography
+                    sx={{ fontSize: 11, color: "#8b8b8b", fontFamily: "monospace" }}
+                  >
+                    {c.citizenid}
+                  </Typography>
+                </Box>
+              );
+            })}
+          </Box>
+        </>
+      )}
 
       {/* Headline numbers */}
       {eco && (
@@ -308,6 +358,7 @@ const DialogAusnetView: React.FC = () => {
                   fetchNui("ausnetVehicleStorage", {
                     id: serverId,
                     vehicleId: v.id,
+                    citizenid: data.selectedCitizenId,
                   }).catch(() => setStorage({ error: "error" }));
                 }}
               >
@@ -428,7 +479,7 @@ const DialogAusnetView: React.FC = () => {
           size="small"
           variant="outlined"
           startIcon={<ContentCopy />}
-          onClick={() => copy("CitizenID", data.citizenid)}
+          onClick={() => copy("CitizenID", data.selectedCitizenId)}
         >
           Copy CitizenID
         </Button>
@@ -440,9 +491,10 @@ const DialogAusnetView: React.FC = () => {
             copy(
               "Summary",
               [
-                `${eco?.name ?? assocPlayer.displayName} (${data.citizenid})`,
+                `${eco?.name ?? assocPlayer.displayName} (${data.selectedCitizenId})`,
                 `Cash ${money(eco?.cash)} · Bank ${money(eco?.bank)}`,
                 `Job: ${eco?.job?.name ?? "none"}`,
+                `Discord: ${data.account?.discord ?? "unknown"}`,
                 `Vehicles: ${vehicles.length}`,
                 trust?.available ? `Trust: ${trust.level} ${trust.score ?? ""}` : null,
               ]

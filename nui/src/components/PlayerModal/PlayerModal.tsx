@@ -177,6 +177,17 @@ const DialogList: React.FC = () => {
 
   return (
     <StyledList>
+      {/* AusNetworks. Placed first because it is the overview an admin wants
+          before deciding what to do. Not translated - it is a product name.
+          The server refuses the request without this permission regardless;
+          disabling here is only so the tab is not a dead end. */}
+      <DialogTab
+        title="Profile"
+        tab={PlayerModalTabs.AUSNET}
+        curTab={curTab}
+        icon={<QueryStats />}
+        isDisabled={!userHasPerm("ausnet.player_data", playerPerms)}
+      />
       <DialogTab
         title={t("nui_menu.player_modal.tabs.actions")}
         tab={PlayerModalTabs.ACTIONS}
@@ -207,16 +218,6 @@ const DialogList: React.FC = () => {
         curTab={curTab}
         icon={<Block />}
         isDisabled={!userHasPerm("players.ban", playerPerms)}
-      />
-      {/* AusNetworks. Not translated because the string is a brand name.
-          The server refuses the request without this permission regardless;
-          disabling here is only so the tab is not a dead end. */}
-      <DialogTab
-        title="AusNet"
-        tab={PlayerModalTabs.AUSNET}
-        curTab={curTab}
-        icon={<QueryStats />}
-        isDisabled={!userHasPerm("ausnet.player_data", playerPerms)}
       />
     </StyledList>
   );

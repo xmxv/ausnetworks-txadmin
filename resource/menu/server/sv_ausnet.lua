@@ -33,10 +33,14 @@ local function refFor(targetId)
     return { serverId = tonumber(targetId) }
 end
 
-RegisterNetEvent('txsv:req:ausnet:playerData', function(targetId)
+RegisterNetEvent('txsv:req:ausnet:playerData', function(targetId, citizenid)
     local src = source
     targetId = tonumber(targetId)
     if not targetId then return end
+    -- The client may pin which character to expand. It is validated against
+    -- the account's own characters server-side, so a forged value cannot read
+    -- someone else's data.
+    if type(citizenid) ~= 'string' then citizenid = nil end
 
     if not PlayerHasTxPermission(src, 'ausnet.player_data') then
         return failTo(src, 'noperm')
@@ -51,7 +55,10 @@ RegisterNetEvent('txsv:req:ausnet:playerData', function(targetId)
     local wantsInventory = PlayerHasTxPermission(src, 'ausnet.player_inventory')
 
     local ok, overview = pcall(function()
-        return exports[RESOURCE]:GetPlayerOverview(refFor(targetId), { inventory = wantsInventory })
+        return exports[RESOURCE]:GetPlayerOverview(refFor(targetId), {
+            inventory = wantsInventory,
+            citizenid = citizenid,
+        })
     end)
     if not ok then
         print(('[txAdmin:ausnet] GetPlayerOverview failed for %s: %s'):format(targetId, overview))
@@ -75,10 +82,11 @@ RegisterNetEvent('txsv:req:ausnet:playerData', function(targetId)
     TriggerClientEvent('txcl:ausnet:playerData', src, overview)
 end)
 
-RegisterNetEvent('txsv:req:ausnet:vehicleStorage', function(targetId, vehicleId)
+RegisterNetEvent('txsv:req:ausnet:vehicleStorage', function(targetId, vehicleId, citizenid)
     local src = source
     targetId, vehicleId = tonumber(targetId), tonumber(vehicleId)
     if not targetId or not vehicleId then return end
+    if type(citizenid) ~= 'string' or citizenid == '' then return end
 
     -- Vehicle contents are inventory data, so they need the inventory
     -- permission, not merely player_data.
@@ -90,7 +98,7 @@ RegisterNetEvent('txsv:req:ausnet:vehicleStorage', function(targetId, vehicleId)
     end
 
     local ok, storage = pcall(function()
-        return exports[RESOURCE]:GetVehicleStorage(vehicleId, refFor(targetId))
+        return exports[RESOURCE]:GetVehicleStorage(vehicleId, citizenid)
     end)
     if not ok then
         print(('[txAdmin:ausnet] GetVehicleStorage failed for %s/%s: %s'):format(targetId, vehicleId, storage))

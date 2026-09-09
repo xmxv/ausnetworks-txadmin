@@ -8,12 +8,12 @@
 ]]
 
 RegisterNUICallback('ausnetPlayerData', function(data, cb)
-    TriggerServerEvent('txsv:req:ausnet:playerData', data.id)
+    TriggerServerEvent('txsv:req:ausnet:playerData', data.id, data.citizenid)
     cb({})
 end)
 
 RegisterNUICallback('ausnetVehicleStorage', function(data, cb)
-    TriggerServerEvent('txsv:req:ausnet:vehicleStorage', data.id, data.vehicleId)
+    TriggerServerEvent('txsv:req:ausnet:vehicleStorage', data.id, data.vehicleId, data.citizenid)
     cb({})
 end)
 
