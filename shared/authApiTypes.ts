@@ -20,6 +20,9 @@ export type ApiSelfResp = ApiAuthErrorResp | ReactAuthDataType;
 
 export type ApiLogoutResp = {
     logout: true;
+    //AusNetworks: set when the panel was reached over the public tunnel, so
+    //logging out returns to the website rather than txAdmin's own login page.
+    redirectTo?: string;
 };
 
 

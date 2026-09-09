@@ -2,6 +2,7 @@ const modulename = 'WebServer:AuthLogout';
 import { InitializedCtx } from '@modules/WebServer/ctxTypes';
 import consoleFactory from '@lib/console';
 import { ApiLogoutResp } from '@shared/authApiTypes';
+import { isDirectLocalRequest } from '@lib/isDirectLocalRequest';
 const console = consoleFactory(modulename);
 
 
@@ -15,6 +16,17 @@ const console = consoleFactory(modulename);
  */
 export default async function AuthLogout(ctx: InitializedCtx) {
     ctx.sessTools.destroy();
+
+    //AusNetworks: when reached over the public tunnel, identity belongs to
+    //the website, so send the admin back there instead of to a txAdmin login
+    //page they are not meant to use. Local sessions keep the default
+    //behaviour so the break-glass login stays reachable.
+    if (!isDirectLocalRequest(ctx)) {
+        return ctx.send<ApiLogoutResp>({
+            logout: true,
+            redirectTo: process.env.TXADMIN_LOGOUT_REDIRECT || 'https://ausnetworks.net/',
+        });
+    }
 
     return ctx.send<ApiLogoutResp>({
         logout: true,

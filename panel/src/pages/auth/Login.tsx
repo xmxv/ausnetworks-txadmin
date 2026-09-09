@@ -184,46 +184,51 @@ export default function Login() {
                     {errorMessage}
                 </div>}
 
-                {/* Form */}
-                <div className="flex flex-col xs:grid grid-cols-8 gap-2 xs:gap-4 items-baseline">
-                    <Label className="col-span-2" htmlFor="frm-login">
-                        Username
-                    </Label>
-                    <Input
-                        id="frm-login"
-                        ref={usernameRef}
-                        type="text"
-                        placeholder="username"
-                        autoCapitalize='off'
-                        autoComplete='off'
-                        className="col-span-6"
-                        required
-                    />
-                </div>
-                <div className="flex flex-col xs:grid grid-cols-8 gap-2 xs:gap-4 items-baseline">
-                    <Label className="col-span-2" htmlFor="frm-password">
-                        Password
-                    </Label>
-                    <Input
-                        id="frm-password"
-                        ref={passwordRef}
-                        type="password"
-                        placeholder='password'
-                        autoCapitalize='off'
-                        autoComplete='off'
-                        className="col-span-6"
-                        required
-                    />
-                </div>
+                {/* AusNetworks: password login is local-only. The server
+                    rejects it over the public tunnel, so do not offer a form
+                    that cannot succeed - Discord SSO is the way in there. */}
+                {window.txConsts.passwordLoginAllowed && (<>
+                    {/* Form */}
+                    <div className="flex flex-col xs:grid grid-cols-8 gap-2 xs:gap-4 items-baseline">
+                        <Label className="col-span-2" htmlFor="frm-login">
+                            Username
+                        </Label>
+                        <Input
+                            id="frm-login"
+                            ref={usernameRef}
+                            type="text"
+                            placeholder="username"
+                            autoCapitalize='off'
+                            autoComplete='off'
+                            className="col-span-6"
+                            required
+                        />
+                    </div>
+                    <div className="flex flex-col xs:grid grid-cols-8 gap-2 xs:gap-4 items-baseline">
+                        <Label className="col-span-2" htmlFor="frm-password">
+                            Password
+                        </Label>
+                        <Input
+                            id="frm-password"
+                            ref={passwordRef}
+                            type="password"
+                            placeholder='password'
+                            autoCapitalize='off'
+                            autoComplete='off'
+                            className="col-span-6"
+                            required
+                        />
+                    </div>
 
-                {/* Buttons */}
-                <Button variant='outline' disabled={isFetching}>
-                    {isFetching ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                        <LogInIcon className="inline mr-2 h-4 w-4" />
-                    )} Login
-                </Button>
+                    {/* Buttons */}
+                    <Button variant='outline' disabled={isFetching}>
+                        {isFetching ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                            <LogInIcon className="inline mr-2 h-4 w-4" />
+                        )} Login
+                    </Button>
+                </>)}
                 <Button
                     className="cfxrebtn"
                     variant='outline'

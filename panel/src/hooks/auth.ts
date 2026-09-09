@@ -101,6 +101,12 @@ export const useAuth = () => {
         if (data.logout) {
             console.log('[useAuth] Manually triggered logout.');
             setAuthData(false);
+            //AusNetworks: the server tells us where to go when the panel was
+            //reached publicly - back to the website that owns the session.
+            if (data.redirectTo) {
+                window.location.href = data.redirectTo;
+                return;
+            }
             redirectToLogin(LogoutReasonHash.LOGOUT);
         } else {
             console.error('Failed to logout:', data);

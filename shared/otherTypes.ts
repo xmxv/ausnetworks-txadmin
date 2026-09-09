@@ -44,6 +44,9 @@ export type InjectedTxConsts = {
     isWebInterface: boolean;
     showAdvanced: boolean;
     hasMasterAccount: boolean;
+    //AusNetworks: false when reached over the public tunnel, so the login
+    //page can hide the password form that the server would reject anyway.
+    passwordLoginAllowed: boolean;
     defaultTheme: string;
     customThemes: Omit<ThemeType, 'style'>[];
     providerLogo: string | undefined;

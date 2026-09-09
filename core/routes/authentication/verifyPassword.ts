@@ -5,6 +5,7 @@ import { txEnv } from '@core/globalData';
 import consoleFactory from '@lib/console';
 import { ApiVerifyPasswordResp, ReactAuthDataType } from '@shared/authApiTypes';
 import { z } from 'zod';
+import { isDirectLocalRequest } from '@lib/isDirectLocalRequest';
 const console = consoleFactory(modulename);
 
 //Helper functions
@@ -34,6 +35,20 @@ export default async function AuthVerifyPassword(ctx: InitializedCtx) {
         });
     }
     const postBody = schemaRes.data;
+
+    //AusNetworks: password login is local-only.
+    //The panel is published publicly through a Cloudflare Tunnel, where the
+    //only accepted identity is Discord SSO from ausnetworks.net. A password
+    //form reachable from the internet is a standing brute-force target and a
+    //second, weaker way into full server admin. It stays available on
+    //loopback so the master account remains a break-glass path when the
+    //website or the tunnel is down.
+    if (!isDirectLocalRequest(ctx)) {
+        console.warn(`Refused remote password login attempt from ${ctx.ip}.`);
+        return ctx.send<ApiVerifyPasswordResp>({
+            error: 'Password login is disabled here. Sign in with Discord at ausnetworks.net.',
+        });
+    }
 
     //Check if there are already admins set up
     if (!txCore.adminStore.hasAdmins()) {
