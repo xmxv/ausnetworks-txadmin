@@ -50,6 +50,16 @@ const SECTIONS: { heading: string; items: NavItem[] }[] = [
     },
 ];
 
+/** Initials for the avatar when an admin has no Discord profile picture. */
+function initialsOf(name: string) {
+    return name
+        .split(/[\s._-]+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part[0]!.toUpperCase())
+        .join('');
+}
+
 function NavRow({ item, disabled }: { item: NavItem; disabled: boolean }) {
     const [isActive] = useRoute(item.href);
     const { Icon } = item;
@@ -59,25 +69,16 @@ function NavRow({ item, disabled }: { item: NavItem; disabled: boolean }) {
             {/* Active indicator: a 3px gradient bar on the left edge, rounded
                 on the outer side only. Always rendered so the row does not
                 shift when it becomes active. */}
-            <span
-                aria-hidden
-                className={cn(
-                    'absolute left-0 top-1/2 -translate-y-1/2 h-[70%] w-[3px] rounded-r-full transition-opacity',
-                    isActive ? 'opacity-100' : 'opacity-0',
-                )}
-                style={{ backgroundImage: 'var(--ausnet-grad)' }}
-            />
-            <Icon className={cn('size-4 shrink-0 transition-colors', isActive && 'text-primary')} />
+            <span aria-hidden className="ausnet-navbar-indicator" />
+            <Icon className="ausnet-navicon" />
             <span className="truncate">{item.label}</span>
         </>
     );
 
     const rowClasses = cn(
-        'relative flex items-center gap-2.5 rounded-xl px-3 py-2 text-[13.5px] transition-colors',
-        isActive
-            ? 'bg-white/[.06] text-white font-medium'
-            : 'text-muted-foreground hover:bg-white/[.035] hover:text-white',
-        disabled && 'opacity-50 pointer-events-none',
+        'ausnet-navitem',
+        isActive && 'is-active',
+        disabled && 'is-disabled',
     );
 
     if (disabled) {
@@ -105,36 +106,25 @@ export default function AusnetNav() {
     const { authData, logout } = useAuth();
 
     return (
-        <nav className="flex flex-col gap-1 select-none">
-            {/* Brand */}
-            <div className="px-3 pb-3">
-                <div
-                    className="text-sm font-semibold leading-tight"
-                    style={{
-                        backgroundImage: 'var(--ausnet-grad-text)',
-                        WebkitBackgroundClip: 'text',
-                        backgroundClip: 'text',
-                        color: 'transparent',
-                    }}
-                >
-                    AusNetworks
-                </div>
-                <div
-                    className="ausnet-eyebrow mt-0.5"
-                    style={{ fontSize: '10.5px', letterSpacing: '.18em' }}
-                >
-                    txAdmin
+        <nav className="ausnet-nav flex flex-col select-none">
+            {/* Brand bar: 4rem tall with its own bottom rule, matching the
+                website's admin panel. The logo is 26px tall at natural aspect;
+                the asset is rendered at 2x for HiDPI. */}
+            <div className="ausnet-brandbar">
+                <img
+                    src="img/ausnet-logo.png"
+                    alt=""
+                    className="h-[26px] w-auto shrink-0 object-contain"
+                />
+                <div className="min-w-0">
+                    <div className="ausnet-brandname">AusNetworks</div>
+                    <div className="ausnet-brandrole">txAdmin</div>
                 </div>
             </div>
 
             {SECTIONS.map((section) => (
-                <div key={section.heading} className="flex flex-col gap-0.5">
-                    <div
-                        className="px-3 pt-4 pb-1.5 font-semibold uppercase"
-                        style={{ fontSize: '10.5px', letterSpacing: '.2em', color: '#525252' }}
-                    >
-                        {section.heading}
-                    </div>
+                <div key={section.heading} className="flex flex-col">
+                    <div className="ausnet-navgroup">{section.heading}</div>
                     {section.items.map((item) => (
                         <NavRow
                             key={item.href}
@@ -145,31 +135,21 @@ export default function AusnetNav() {
                 </div>
             ))}
 
-            {/* Account footer: a card inside a 1px gradient ring */}
+            {/* Account footer. Reference: .sidefoot / .usercard / .avatar,
+                with the 1px gradient ring drawn by a masked pseudo-element so
+                the card keeps a solid surface behind it. */}
             {authData && (
-                <div
-                    className="mt-5 rounded-xl p-px"
-                    style={{ backgroundImage: 'var(--ausnet-grad)' }}
-                >
-                    <div className="flex items-center gap-2.5 rounded-[calc(0.75rem-1px)] bg-black/90 px-2.5 py-2">
-                        {authData.profilePicture ? (
-                            <img
-                                src={authData.profilePicture}
-                                alt=""
-                                className="size-7 rounded-full object-cover shrink-0"
-                            />
-                        ) : (
-                            <div className="size-7 rounded-full bg-secondary shrink-0" />
-                        )}
+                <div className="ausnet-sidefoot">
+                    <div className="ausnet-usercard">
+                        <div className="ausnet-avatar">
+                            {authData.profilePicture
+                                ? <img src={authData.profilePicture} alt="" />
+                                : initialsOf(authData.name)}
+                        </div>
                         <div className="min-w-0 flex-1">
-                            <div className="truncate text-[13px] font-medium text-white">
-                                {authData.name}
-                            </div>
-                            <div
-                                className="truncate text-primary"
-                                style={{ fontSize: '10.5px', letterSpacing: '.14em' }}
-                            >
-                                {authData.isMaster ? 'MASTER' : 'ADMIN'}
+                            <div className="ausnet-username truncate">{authData.name}</div>
+                            <div className="ausnet-userrole truncate">
+                                {authData.isMaster ? 'Master admin' : 'Admin'}
                             </div>
                         </div>
                         <button
@@ -177,7 +157,7 @@ export default function AusnetNav() {
                             onClick={() => logout()}
                             title="Sign out"
                             aria-label="Sign out"
-                            className="shrink-0 rounded-lg p-1.5 text-muted-foreground hover:text-white hover:bg-white/[.06] transition-colors"
+                            className="relative z-[1] shrink-0 rounded-lg p-1.5 text-muted-foreground hover:text-white hover:bg-white/[.06] transition-colors"
                         >
                             <LogOut className="size-4" />
                         </button>

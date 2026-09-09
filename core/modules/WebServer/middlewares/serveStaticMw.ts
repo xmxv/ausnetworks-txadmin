@@ -92,7 +92,11 @@ const checkFileWhitelist = (rootPath: string, url: string) => {
         '/index.html',
         '/img/discord.png',
         '/img/zap_login.png',
-        '/img/zap_main.png'
+        '/img/zap_main.png',
+        //AusNetworks: brand logo used by the sidebar rail. Unhashed, so it has
+        //to be listed here or the static server falls through to index.html
+        //and the image silently renders as the SPA shell.
+        '/img/ausnet-logo.png',
     ];
     return nonHashedFiles.includes(url) || url.includes('.v800.');
 }

@@ -20,12 +20,10 @@ export function ServerSidebar({ isSheet }: ServerSidebarProps) {
             )}
         >
             {/* AusNetworks: page navigation lives here rather than the top
-                bar, matching the website's admin panel. */}
-            <div className={cn(
-                !isSheet && 'rounded-xl border bg-card text-card-foreground shadow-sm p-3',
-            )}>
-                <AusnetNav />
-            </div>
+                bar, matching the website's admin panel. Deliberately NOT
+                wrapped in a card - it is the rail itself, and the surface
+                treatment comes from .tx-sidebar. */}
+            <AusnetNav />
             <div className={cn(
                 !isSheet && 'rounded-xl border bg-card text-card-foreground shadow-sm p-4',
             )}>
