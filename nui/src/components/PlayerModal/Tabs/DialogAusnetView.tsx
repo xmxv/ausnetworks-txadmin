@@ -223,6 +223,21 @@ const DialogAusnetView: React.FC = () => {
 
   return (
     <DialogContent sx={{ pb: 2 }}>
+      {data.failed?.length > 0 && (
+        <Box
+          sx={{
+            mb: 2, p: 1.25, borderRadius: "10px",
+            border: "1px solid rgba(255,176,32,.35)",
+            background: "rgba(255,176,32,.08)",
+          }}
+        >
+          <Typography sx={{ fontSize: 12.5, color: "#ffb020" }}>
+            Could not load: {data.failed.join(", ")}. The rest of this profile
+            is still accurate - check the server console for the reason.
+          </Typography>
+        </Box>
+      )}
+
       {/* Account header. Trust belongs to the account, not one character. */}
       <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
         <Box sx={{ minWidth: 0 }}>
@@ -428,15 +443,23 @@ const DialogAusnetView: React.FC = () => {
       )}
 
       {/* Bank accounts and recent flow */}
-      {eco?.bankAccounts?.length > 0 && (
+      {eco?.sharedAccounts?.length > 0 && (
         <>
           <SectionTitle icon={<AccountBalanceWallet sx={{ fontSize: 15, color: "#00d2b4" }} />}>
-            Other accounts
+            Shared accounts ({eco.sharedAccounts.length})
           </SectionTitle>
           <Typography sx={{ fontSize: 13, color: "#d4d4d4" }}>
-            {eco.bankAccounts
-              .map((a: any) => `${a.account_name}: ${money(a.account_balance)}`)
+            {eco.sharedAccounts
+              .map(
+                (a: any) =>
+                  `${a.name}: ${money(a.balance)}${a.isOwner ? " (owner)" : ""}${
+                    a.isFrozen ? " [frozen]" : ""
+                  }`
+              )
               .join(" · ")}
+          </Typography>
+          <Typography sx={{ fontSize: 11.5, color: "#5c5c5c", mt: 0.5 }}>
+            Job and business accounts this character can draw from.
           </Typography>
         </>
       )}
