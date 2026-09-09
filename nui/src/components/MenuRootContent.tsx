@@ -11,10 +11,21 @@ interface TxAdminLogoProps {
 }
 
 const TxAdminLogo: React.FC<TxAdminLogoProps> = ({ themeName }) => {
-  const imgName = themeName === 'fivem' ? 'txadmin.png' : 'txadmin-redm.png';
+  //AusNetworks: our mark replaces the txAdmin wordmark on the FiveM theme.
+  //RedM keeps upstream's, since we do not run one.
+  const isAusnet = themeName === 'fivem';
+  const imgName = isAusnet ? 'ausnet-menu.png' : 'txadmin-redm.png';
   return (
     <Box my={1} display="flex" justifyContent="center">
-      <img src={`images/${imgName}`} alt="txAdmin logo" />
+      <img
+        src={`images/${imgName}`}
+        alt={isAusnet ? "AusNetworks" : "txAdmin logo"}
+        //Upstream's wordmark is 200x38 and relies on its natural size. Ours is
+        //taller and squarer, so the height is pinned to keep the header the
+        //same shape - see the version label's negative margin below, which is
+        //tuned to this value.
+        style={isAusnet ? { height: 46, width: "auto" } : undefined}
+      />
     </Box>
   )
 };
@@ -49,7 +60,8 @@ export const MenuRootContent: React.FC = React.memo(() => {
         color="textSecondary"
         style={{
           fontWeight: 500,
-          marginTop: -20,
+          //Tuned to the 46px AusNetworks mark above (upstream's was 38px).
+          marginTop: -16,
           textAlign: "right",
           fontSize: 12,
         }}
