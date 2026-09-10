@@ -1,46 +1,77 @@
+/*
+ * AusNetworks theme for the in-game menu.
+ *
+ * The in-game menu is a separate React app from the web panel and uses
+ * Material UI, so none of ausnetworksBrand.ts applies here. This is the same
+ * upstream theme object with the palette swapped for our brand - the layout,
+ * component structure and behaviour of txAdmin's menu are deliberately left
+ * alone.
+ *
+ * Colours are the production values from the AusNetworks admin panel
+ * reference. Keep them in step with tmpCustomThemes in getReactIndex.ts and
+ * with ausnetworksBrand.ts if the brand ever changes.
+ */
 export default {
   name: 'fivem',
   logo: 'images/txadmin.png',
+  typography: {
+    fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, sans-serif',
+  },
   palette: {
     mode: "dark",
     primary: {
-      main: "rgba(0,197,140,0.87)",
+      // Brand teal. Upstream was already a green-teal, so this keeps the same
+      // visual role rather than changing what "primary" means in the menu.
+      main: "#00d2b4",
+      contrastText: "#000000",
     },
     success: {
-      main: "rgba(0,149,108,0.87)",
+      main: "#2ee08a",
+      contrastText: "#000000",
     },
     warning: {
-      main: "rgb(255,189,22)",
+      main: "#ffb020",
+      contrastText: "#000000",
     },
     error: {
-      main: "rgb(194,13,37)",
+      main: "#ff4d4f",
+      contrastText: "#000000",
     },
     info: {
-      main: "rgb(9,96,186)",
+      main: "#5865f2",
     },
     background: {
-      default: "#151a1f",
-      paper: "#24282B",
+      // Pure black, per the reference. Near-blacks and blue-tinted greys read
+      // as a different product next to the website.
+      default: "#000000",
+      paper: "#0a0a0a",
     },
     action: {
-      selected: "rgba(255, 255, 255, 0.1)",
+      selected: "rgba(255, 255, 255, 0.06)",
+      hover: "rgba(255, 255, 255, 0.035)",
     },
     secondary: {
       main: "#fff",
     },
     text: {
-      primary: "#fff",
-      secondary: "rgba(221,221,221,0.54)",
+      primary: "#f5f5f5",
+      secondary: "#8b8b8b",
+      disabled: "#5c5c5c",
     },
+    divider: "#1f1f1f",
   },
   components: {
     MuiListItem: {
       styleOverrides: {
         root: {
           border: "1px solid transparent",
+          borderRadius: 12,
           "&.Mui-selected": {
-            backgroundColor: "rgba(255, 255, 255, 0.1)",
-            border: "1px solid rgba(255, 255, 255, 0.15)",
+            backgroundColor: "rgba(255, 255, 255, 0.06)",
+            border: "1px solid #2a2a2a",
+          },
+          "&:hover": {
+            backgroundColor: "rgba(255, 255, 255, 0.035)",
           },
         },
       },
@@ -49,9 +80,13 @@ export default {
       styleOverrides: {
         root: {
           border: "1px solid transparent",
+          borderRadius: 12,
           "&.Mui-selected": {
-            backgroundColor: "rgba(255, 255, 255, 0.1)",
-            border: "1px solid rgba(255, 255, 255, 0.15)",
+            backgroundColor: "rgba(255, 255, 255, 0.06)",
+            border: "1px solid #2a2a2a",
+          },
+          "&:hover": {
+            backgroundColor: "rgba(255, 255, 255, 0.035)",
           },
         },
       },
@@ -59,9 +94,65 @@ export default {
     MuiPaper: {
       styleOverrides: {
         root: {
-          backgroundImage: "unset"
-        }
-      }
+          backgroundImage: "unset",
+          border: "1px solid #1f1f1f",
+        },
+      },
+    },
+    MuiDivider: {
+      styleOverrides: {
+        root: { borderColor: "#1f1f1f" },
+      },
+    },
+    MuiChip: {
+      styleOverrides: {
+        root: { fontWeight: 600 },
+      },
+    },
+    MuiOutlinedInput: {
+      styleOverrides: {
+        root: {
+          backgroundColor: "rgba(0,0,0,0.4)",
+          borderRadius: 10,
+          "& .MuiOutlinedInput-notchedOutline": { borderColor: "#1f1f1f" },
+          "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "#2a2a2a" },
+          "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+            borderColor: "rgba(0,210,180,.55)",
+            borderWidth: 1,
+          },
+        },
+      },
+    },
+    MuiButton: {
+      styleOverrides: {
+        // Primary actions carry the brand gradient with BLACK text, matching
+        // the website. Never white text on this fill - it fails contrast
+        // against the teal end of the ramp.
+        containedPrimary: {
+          backgroundImage:
+            "linear-gradient(92deg, #00d2b4 0%, #2ee08a 35%, #ff2d92 75%, #ff8a1f 100%)",
+          color: "#000",
+          fontWeight: 600,
+          "&:hover": { filter: "brightness(1.08)" },
+        },
+        root: { borderRadius: 10, textTransform: "none" },
+      },
+    },
+    MuiTableCell: {
+      styleOverrides: {
+        head: {
+          fontSize: 10.5,
+          letterSpacing: ".18em",
+          textTransform: "uppercase",
+          color: "#6b6b6b",
+          fontWeight: 600,
+          borderBottom: "1px solid #1f1f1f",
+        },
+        body: {
+          color: "#d4d4d4",
+          borderBottom: "1px solid rgba(31,31,31,.6)",
+        },
+      },
     },
   },
 } as const;
