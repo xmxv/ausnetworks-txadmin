@@ -15,6 +15,15 @@
  * own class name, the reference selector is noted so the two can be diffed.
  */
 export const ausnetworksBrandCss = `
+
+/* NOTE ON SCOPING
+   Rules for our own .ausnet-* classes are deliberately NOT scoped behind
+   .theme-ausnetworks. Those class names exist only in this fork, so they
+   cannot collide with upstream or leak into another theme - and scoping them
+   only created a failure mode: when the theme class went missing, the sidebar
+   lost its flex layout and the avatar lost its size box, which looked like
+   the components were broken rather than merely unstyled.
+   Generic element selectors below stay scoped, since those would leak. */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 :root, .theme-ausnetworks {
@@ -84,79 +93,79 @@ export const ausnetworksBrandCss = `
   border-radius: 0;
   padding-right: .75rem;
 }
-.theme-ausnetworks .ausnet-brandbar {
+.ausnet-brandbar {
   height: 4rem; display: flex; align-items: center; gap: .75rem;
   padding: 0 1.25rem 0 .25rem; margin-bottom: .5rem;
   border-bottom: 1px solid var(--ausnet-line);
 }
-.theme-ausnetworks .ausnet-brandname {
+.ausnet-brandname {
   font-size: 14px; font-weight: 600; letter-spacing: -.01em;
   color: #fff; line-height: 1.2;
 }
-.theme-ausnetworks .ausnet-brandrole {
+.ausnet-brandrole {
   font-size: 10.5px; font-weight: 600; text-transform: uppercase;
   letter-spacing: .18em; color: var(--ausnet-teal); margin-top: 1px;
 }
-.theme-ausnetworks .ausnet-nav { padding: 0 0 .25rem; }
-.theme-ausnetworks .ausnet-navgroup {
+.ausnet-nav { padding: 0 0 .25rem; }
+.ausnet-navgroup {
   margin: 1.25rem 0 .375rem; padding: 0 .75rem;
   font-size: 10.5px; font-weight: 600; text-transform: uppercase;
   letter-spacing: .2em; color: #525252;
 }
-.theme-ausnetworks .ausnet-navgroup:first-of-type { margin-top: 0; }
+.ausnet-navgroup:first-of-type { margin-top: 0; }
 
-.theme-ausnetworks .ausnet-navitem {
+.ausnet-navitem {
   position: relative; display: flex; align-items: center; gap: .625rem;
   padding: .5rem .75rem; margin-bottom: .125rem;
   border-radius: .75rem; font-size: 13.5px; color: var(--ausnet-muted);
   transition: background .15s, color .15s;
 }
-.theme-ausnetworks .ausnet-navitem:hover { background: rgba(255,255,255,.035); color: #fff; }
-.theme-ausnetworks .ausnet-navitem.is-active { background: rgba(255,255,255,.06); color: #fff; }
-.theme-ausnetworks .ausnet-navitem.is-disabled { opacity: .5; pointer-events: none; }
-.theme-ausnetworks .ausnet-navicon { width: 16px; height: 16px; flex-shrink: 0; transition: color .15s; }
-.theme-ausnetworks .ausnet-navitem.is-active .ausnet-navicon { color: var(--ausnet-teal); }
+.ausnet-navitem:hover { background: rgba(255,255,255,.035); color: #fff; }
+.ausnet-navitem.is-active { background: rgba(255,255,255,.06); color: #fff; }
+.ausnet-navitem.is-disabled { opacity: .5; pointer-events: none; }
+.ausnet-navicon { width: 16px; height: 16px; flex-shrink: 0; transition: color .15s; }
+.ausnet-navitem.is-active .ausnet-navicon { color: var(--ausnet-teal); }
 
 /* Reference uses ::before on the active row. Kept as an element toggled by
    opacity so rows do not reflow on navigation. Height is a fixed 20px, per the
    reference, not a percentage of the row. */
-.theme-ausnetworks .ausnet-navbar-indicator {
+.ausnet-navbar-indicator {
   position: absolute; left: 0; top: 50%; transform: translateY(-50%);
   width: 3px; height: 20px; border-radius: 0 999px 999px 0;
   background-image: var(--ausnet-grad);
   opacity: 0; transition: opacity .15s;
 }
-.theme-ausnetworks .ausnet-navitem.is-active .ausnet-navbar-indicator { opacity: 1; }
+.ausnet-navitem.is-active .ausnet-navbar-indicator { opacity: 1; }
 
 /* Reference: .sidefoot / .usercard / .avatar / .brand-ring */
-.theme-ausnetworks .ausnet-sidefoot {
+.ausnet-sidefoot {
   border-top: 1px solid var(--ausnet-line);
   padding: .75rem .25rem 0;
   margin-top: 1.25rem;
 }
-.theme-ausnetworks .ausnet-usercard {
+.ausnet-usercard {
   position: relative;
   display: flex; align-items: center; gap: .625rem;
   background: var(--ausnet-surface); border-radius: .75rem; padding: .5rem .75rem;
 }
 /* 1px gradient border via a masked pseudo-element, so the card keeps a solid
    background instead of the gradient showing through a padded wrapper. */
-.theme-ausnetworks .ausnet-usercard::before {
+.ausnet-usercard::before {
   content: ''; position: absolute; inset: -1px; border-radius: inherit; padding: 1px;
   background: linear-gradient(120deg, rgba(0,210,180,.7), rgba(46,224,138,.4) 35%, rgba(255,45,146,.5) 75%, rgba(255,138,31,.7));
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor; mask-composite: exclude;
   pointer-events: none;
 }
-.theme-ausnetworks .ausnet-avatar {
+.ausnet-avatar {
   width: 28px; height: 28px; border-radius: 999px; flex-shrink: 0;
   background-image: var(--ausnet-grad); color: #000;
   display: flex; align-items: center; justify-content: center;
   font-size: 11px; font-weight: 700; overflow: hidden;
 }
-.theme-ausnetworks .ausnet-avatar img { width: 100%; height: 100%; object-fit: cover; }
-.theme-ausnetworks .ausnet-username { font-size: 13px; color: #fff; line-height: 1.2; }
-.theme-ausnetworks .ausnet-userrole { font-size: 11px; color: var(--ausnet-teal); }
+.ausnet-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.ausnet-username { font-size: 13px; color: #fff; line-height: 1.2; }
+.ausnet-userrole { font-size: 11px; color: var(--ausnet-teal); }
 
 /* ---------- Cards ----------
    Reference: .card / .card-hover. The reference card radius is 1.25rem, larger
@@ -242,12 +251,12 @@ export const ausnetworksBrandCss = `
 }
 
 /* ---------- Utilities ---------- */
-.theme-ausnetworks .ausnet-rule { height: 1px; opacity: .4; background: var(--ausnet-rule); }
-.theme-ausnetworks .ausnet-gradient-text {
+.ausnet-rule { height: 1px; opacity: .4; background: var(--ausnet-rule); }
+.ausnet-gradient-text {
   background: var(--ausnet-grad-text);
   -webkit-background-clip: text; background-clip: text; color: transparent;
 }
-.theme-ausnetworks .ausnet-eyebrow {
+.ausnet-eyebrow {
   display: flex; align-items: center; gap: .5rem;
   font-size: 11.5px; font-weight: 600; letter-spacing: .2em;
   text-transform: uppercase; color: var(--ausnet-teal);

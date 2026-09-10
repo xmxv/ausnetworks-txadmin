@@ -208,31 +208,21 @@ export default async function getReactIndex(ctx: CtxWithVars | AuthedCtx) {
     //theme variables so it can reference them.
     replacers.customThemesStyle += `<style>${escapeHtmlRawText(ausnetworksBrandCss)}</style>`;
 
-    //Setting the theme class from the cookie
-    //AusNetworks: a custom theme needs BOTH the light/dark base class and its
-    //own theme-<name> class. Upstream assigned tmpDefaultTheme directly, which
-    //only produces a valid class list for the built-in 'dark'/'light' names.
-    const resolveThemeClasses = (themeName: string) => {
-        if (tmpDefaultThemes.includes(themeName)) return themeName;
-        const custom = tmpCustomThemes.find((t) => t.name === themeName);
-        if (!custom) return 'dark';
-        return `${custom.isDark ? 'dark' : 'light'} theme-${custom.name}`;
-    };
-    let htmlClasses = resolveThemeClasses(tmpDefaultTheme);
-    const themeCookie = ctx.cookies.get(consts.cookies.theme);
-    if (themeCookie) {
-        if (tmpDefaultThemes.includes(themeCookie)) {
-            htmlClasses = themeCookie;
-        } else {
-            const selectedCustomTheme = tmpCustomThemes.find((theme) => theme.name === themeCookie);
-            if (!selectedCustomTheme) {
-                htmlClasses = resolveThemeClasses(tmpDefaultTheme);
-            } else {
-                const lightDarkSelector = selectedCustomTheme.isDark ? 'dark' : 'light';
-                htmlClasses = `${lightDarkSelector} theme-${selectedCustomTheme.name}`;
-            }
-        }
-    }
+    //AusNetworks: the panel is deliberately single-theme - committed dark,
+    //pure black - so the theme is applied unconditionally and the stored
+    //preference is ignored.
+    //
+    //This is not cosmetic. Upstream lets a cookie override the default, and a
+    //browser that had signed in before the custom theme existed still held
+    //`dark`. That produced htmlClasses of "dark" with no theme-ausnetworks,
+    //which silently disabled EVERY brand rule: the sidebar lost its flex
+    //layout so icons stacked above their labels, and the account avatar lost
+    //its 28px box and rendered at full size. The markup was fine; only the
+    //class that all of it is scoped to was missing.
+    const ausnetTheme = tmpCustomThemes.find((t) => t.name === tmpDefaultTheme);
+    const htmlClasses = ausnetTheme
+        ? `${ausnetTheme.isDark ? 'dark' : 'light'} theme-${ausnetTheme.name}`
+        : 'dark';
     replacers.htmlClasses = escapeHtmlAttribute(htmlClasses);
 
     //Replace
