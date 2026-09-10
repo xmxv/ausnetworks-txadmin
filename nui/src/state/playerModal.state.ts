@@ -11,6 +11,9 @@ export enum PlayerModalTabs {
   IDENTIFIERS,
   HISTORY,
   BAN,
+  //AusNetworks: economy, vehicles, inventory and trust. Appended rather than
+  //inserted so the numeric values of the upstream tabs do not shift.
+  AUSNET,
 }
 
 const playerModalTabAtom = atom<PlayerModalTabs>({

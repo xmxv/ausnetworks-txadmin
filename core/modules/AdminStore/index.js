@@ -79,6 +79,15 @@ export default class AdminStore {
             'players.spectate': 'Spectate', //self playermode, and also the player spectate option
             'players.teleport': 'Teleport', //self teleport, and the bring/go to on player modal
             'players.troll': 'Troll Actions', //all the troll options in the player modal
+
+            //AusNetworks additions. Kept separate from menu.viewids on purpose:
+            //seeing a player's ID is a convenience, while reading their bank
+            //balance, owned vehicles or inventory is real privacy and abuse
+            //surface - a moderator scouting who is worth robbing looks exactly
+            //like a moderator doing their job.
+            'ausnet.player_data': 'AusNet: View Player Economy & Vehicles',
+            'ausnet.player_inventory': 'AusNet: View Player Inventory',
+            'ausnet.anticheat': 'AusNet: Anticheat Panel & Trust Scores',
         };
         //FIXME: pode remover, hardcode na cron function
         this.hardConfigs = {

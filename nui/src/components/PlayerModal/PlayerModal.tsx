@@ -16,6 +16,7 @@ import {
   FormatListBulleted,
   MenuBook,
   Person,
+  QueryStats,
 } from "@mui/icons-material";
 import {
   useAssociatedPlayerValue,
@@ -206,6 +207,16 @@ const DialogList: React.FC = () => {
         curTab={curTab}
         icon={<Block />}
         isDisabled={!userHasPerm("players.ban", playerPerms)}
+      />
+      {/* AusNetworks. Not translated because the string is a brand name.
+          The server refuses the request without this permission regardless;
+          disabling here is only so the tab is not a dead end. */}
+      <DialogTab
+        title="AusNet"
+        tab={PlayerModalTabs.AUSNET}
+        curTab={curTab}
+        icon={<QueryStats />}
+        isDisabled={!userHasPerm("ausnet.player_data", playerPerms)}
       />
     </StyledList>
   );

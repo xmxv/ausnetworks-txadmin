@@ -38,7 +38,9 @@ server_scripts {
     'resource/menu/server/sv_trollactions.lua',
     'resource/menu/server/sv_player_modal.lua',
     'resource/menu/server/sv_spectate.lua',
-    'resource/menu/server/sv_player_mode.lua'
+    'resource/menu/server/sv_player_mode.lua',
+    --AusNetworks bridge to the ausnet-admin resource
+    'resource/menu/server/sv_ausnet.lua'
 }
 
 client_scripts {
@@ -57,6 +59,8 @@ client_scripts {
     'resource/menu/client/cl_spectate.lua',
     'resource/menu/client/cl_trollactions.lua',
     'resource/menu/client/cl_freeze.lua',
+    --AusNetworks bridge. Must come after cl_functions.lua (sendMenuMessage).
+    'resource/menu/client/cl_ausnet.lua',
     'resource/menu/vendor/freecam/utils.lua',
     'resource/menu/vendor/freecam/config.lua',
     'resource/menu/vendor/freecam/main.lua',
