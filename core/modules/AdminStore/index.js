@@ -88,6 +88,10 @@ export default class AdminStore {
             'ausnet.player_data': 'AusNet: View Player Economy & Vehicles',
             'ausnet.player_inventory': 'AusNet: View Player Inventory',
             'ausnet.anticheat': 'AusNet: Anticheat Panel & Trust Scores',
+            //Separate from player_inventory, which is view-only. This one lets
+            //an admin take items out of someone's pockets and destroy their
+            //property with no undo, which is a different level of trust.
+            'ausnet.inventory_manage': 'AusNet: Open & Wipe Inventories (destructive)',
         };
         //FIXME: pode remover, hardcode na cron function
         this.hardConfigs = {

@@ -24,3 +24,12 @@ end)
 RegisterNetEvent('txcl:ausnet:vehicleStorage', function(payload)
     sendMenuMessage('setAusnetVehicleStorage', payload)
 end)
+
+RegisterNUICallback('ausnetInventoryAction', function(data, cb)
+    TriggerServerEvent('txsv:req:ausnet:inventoryAction', data.action, data)
+    cb({})
+end)
+
+RegisterNetEvent('txcl:ausnet:actionResult', function(payload)
+    sendMenuMessage('setAusnetActionResult', payload)
+end)

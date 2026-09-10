@@ -20,7 +20,11 @@ import {
   Refresh,
   DirectionsCar,
   AccountBalanceWallet,
+  Visibility,
+  OpenInNew,
+  DeleteForever,
 } from "@mui/icons-material";
+import { useDialogContext } from "../../../provider/DialogProvider";
 import { useSnackbar } from "notistack";
 import { useAssociatedPlayerValue } from "../../../state/playerDetails.state";
 import { useNuiEvent } from "../../../hooks/useNuiEvent";
@@ -138,6 +142,7 @@ const TH: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 const DialogAusnetView: React.FC = () => {
   const assocPlayer = useAssociatedPlayerValue();
   const { enqueueSnackbar } = useSnackbar();
+  const { openDialog } = useDialogContext();
   const [data, setData] = useState<any>(null);
   const [storage, setStorage] = useState<any>(null);
   const [pinnedChar, setPinnedChar] = useState<string | undefined>(undefined);
@@ -150,6 +155,14 @@ const DialogAusnetView: React.FC = () => {
     setData(payload);
   });
   useNuiEvent<any>("setAusnetVehicleStorage", setStorage);
+  useNuiEvent<any>("setAusnetActionResult", (r) => {
+    enqueueSnackbar(
+      r.ok ? `${r.action} done` : r.error || "Action failed",
+      { variant: r.ok ? "success" : "error" }
+    );
+    // A wipe changes what the panel is showing, so pull fresh data.
+    if (r.ok && String(r.action).startsWith("wipe")) load();
+  });
 
   const load = React.useCallback(() => {
     if (serverId === undefined) return;
@@ -174,6 +187,33 @@ const DialogAusnetView: React.FC = () => {
       if (timeoutRef.current) window.clearTimeout(timeoutRef.current);
     };
   }, [load]);
+
+  const act = (action: string, extra: Record<string, any> = {}) =>
+    fetchNui("ausnetInventoryAction", {
+      action,
+      targetId: serverId,
+      citizenid: data?.selectedCitizenId,
+      ...extra,
+    }).catch(() => enqueueSnackbar("Action failed to send", { variant: "error" }));
+
+  // Destructive actions always confirm. There is no undo on a wipe, and the
+  // buttons sit next to read-only ones that are safe to click freely.
+  const confirmThen = (what: string, onYes: () => void) =>
+    openDialog({
+      title: `Wipe ${what}?`,
+      description:
+        `This permanently destroys the contents of ${what}. It cannot be undone. ` +
+        `Type WIPE to confirm.`,
+      placeholder: "WIPE",
+      onSubmit: (value: string) => {
+        if (value.trim().toUpperCase() !== "WIPE") {
+          return enqueueSnackbar("Not confirmed - nothing was wiped", {
+            variant: "info",
+          });
+        }
+        onYes();
+      },
+    });
 
   const copy = (label: string, value?: string) => {
     if (!value) return;
@@ -253,7 +293,7 @@ const DialogAusnetView: React.FC = () => {
             title={
               trust.available
                 ? trust.reasons?.join(" · ") || "No flags"
-                : "The anticheat has not registered a trust provider"
+                : "AN-Anticheat has not registered a trust provider yet"
             }
           >
             <Chip
@@ -263,7 +303,7 @@ const DialogAusnetView: React.FC = () => {
                   ? `${trust.level.toUpperCase()}${
                       trust.score != null ? ` · ${trust.score}` : ""
                     }`
-                  : "TRUST N/A"
+                  : "AN-ANTICHEAT · PENDING"
               }
               sx={{
                 color: TRUST_COLOURS[trust.level as TrustLevel] ?? "#8b8b8b",
@@ -389,8 +429,58 @@ const DialogAusnetView: React.FC = () => {
                 <TableCell sx={{ color: v.bodyPct < 40 ? "#ffb020" : "#d4d4d4" }}>
                   {v.bodyPct}%
                 </TableCell>
-                <TableCell sx={{ color: "#8b8b8b" }}>
-                  {v.gloveboxCount + v.trunkCount}
+                <TableCell sx={{ color: "#8b8b8b", whiteSpace: "nowrap" }}>
+                  {/* Trunk and glovebox are listed separately so you choose
+                      which to act on, rather than a single combined count. */}
+                  {(["trunk", "glovebox"] as const).map((kind) => {
+                    const count =
+                      kind === "trunk" ? v.trunkCount : v.gloveboxCount;
+                    return (
+                      <Box
+                        key={kind}
+                        sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 0.25 }}
+                      >
+                        <Typography
+                          sx={{ fontSize: 12, color: "#8b8b8b", width: 62, textTransform: "capitalize" }}
+                        >
+                          {kind} {count}
+                        </Typography>
+                        <Tooltip title={`View ${kind} in the inventory UI`}>
+                          <span>
+                            <Button
+                              size="small"
+                              sx={{ minWidth: 0, px: 0.5 }}
+                              disabled={!data.perms?.inventory}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                act("viewVehicle", { plate: v.plate, kind });
+                              }}
+                            >
+                              <Visibility sx={{ fontSize: 15 }} />
+                            </Button>
+                          </span>
+                        </Tooltip>
+                        <Tooltip title={`Wipe ${kind}`}>
+                          <span>
+                            <Button
+                              size="small"
+                              color="error"
+                              sx={{ minWidth: 0, px: 0.5 }}
+                              disabled={!data.perms?.inventoryManage}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                confirmThen(`${v.plate} ${kind}`, () =>
+                                  act("wipeVehicle", { plate: v.plate, kind })
+                                );
+                              }}
+                            >
+                              <DeleteForever sx={{ fontSize: 15 }} />
+                            </Button>
+                          </span>
+                        </Tooltip>
+                      </Box>
+                    );
+                  })}
                 </TableCell>
               </TableRow>
             ))}
@@ -434,6 +524,44 @@ const DialogAusnetView: React.FC = () => {
           <SectionTitle icon={<Inventory2 sx={{ fontSize: 15, color: "#00d2b4" }} />}>
             Inventory ({data.inventory.items?.length ?? 0})
           </SectionTitle>
+          <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: 1 }}>
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<Visibility />}
+              onClick={() => act("viewPlayer")}
+            >
+              View
+            </Button>
+            <Tooltip title="Open interactively - you can take and place items">
+              <span>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<OpenInNew />}
+                  disabled={!data.perms?.inventoryManage}
+                  onClick={() => act("openPlayer")}
+                >
+                  Open
+                </Button>
+              </span>
+            </Tooltip>
+            <Button
+              size="small"
+              variant="outlined"
+              color="error"
+              startIcon={<DeleteForever />}
+              disabled={!data.perms?.inventoryManage}
+              onClick={() =>
+                confirmThen("this player's inventory", () => act("wipePlayer"))
+              }
+            >
+              Wipe
+            </Button>
+          </Box>
+          <Typography sx={{ fontSize: 11.5, color: "#5c5c5c", mb: 1 }}>
+            View and Open require the player to be online.
+          </Typography>
           <Typography sx={{ fontSize: 13, color: "#d4d4d4" }}>
             {data.inventory.items?.length
               ? data.inventory.items.map((i: any) => `${i.label} x${i.count}`).join(", ")

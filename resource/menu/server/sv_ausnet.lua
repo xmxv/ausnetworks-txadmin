@@ -76,6 +76,7 @@ RegisterNetEvent('txsv:req:ausnet:playerData', function(targetId, citizenid)
 
     overview.perms = {
         inventory = wantsInventory,
+        inventoryManage = PlayerHasTxPermission(src, 'ausnet.inventory_manage'),
         anticheat = PlayerHasTxPermission(src, 'ausnet.anticheat'),
     }
 
@@ -106,4 +107,57 @@ RegisterNetEvent('txsv:req:ausnet:vehicleStorage', function(targetId, vehicleId,
     end
 
     TriggerClientEvent('txcl:ausnet:vehicleStorage', src, storage or { error = 'notfound' })
+end)
+
+--[[
+    Inventory actions.
+
+    Viewing is read-only and rides on ausnet.player_inventory. Opening
+    interactively and wiping are destructive - an admin can take items or
+    destroy them outright - so they need ausnet.inventory_manage, which is
+    deliberately a separate grant.
+
+    Every attempt is written to txAdmin's admin log via txsv:logger:menuEvent,
+    allowed or not, so there is a record of who looked in whose pockets.
+]]
+RegisterNetEvent('txsv:req:ausnet:inventoryAction', function(action, params)
+    local src = source
+    if type(action) ~= 'string' or type(params) ~= 'table' then return end
+
+    local DESTRUCTIVE = { openPlayer = true, wipePlayer = true, wipeVehicle = true }
+    local perm = DESTRUCTIVE[action] and 'ausnet.inventory_manage' or 'ausnet.player_inventory'
+    local allow = PlayerHasTxPermission(src, perm)
+
+    TriggerEvent('txsv:logger:menuEvent', src, 'ausnetInventory:' .. action, allow, {
+        target = params.targetId,
+        plate = params.plate,
+        kind = params.kind,
+    })
+
+    local function reply(ok, err)
+        TriggerClientEvent('txcl:ausnet:actionResult', src, {
+            action = action,
+            ok = ok and true or false,
+            error = err,
+        })
+    end
+
+    if not allow then return reply(false, 'You do not have permission for that.') end
+    if not resourceReady() then return reply(false, 'ausnet-admin is not running.') end
+
+    local targetSrc = tonumber(params.targetId)
+    local ok, res, err = pcall(function()
+        return exports[RESOURCE]:InventoryAction(action, {
+            adminSrc = src,
+            targetSrc = targetSrc,
+            citizenid = params.citizenid,
+            plate = params.plate,
+            kind = params.kind,
+        })
+    end)
+    if not ok then
+        print(('[txAdmin:ausnet] %s failed: %s'):format(action, res))
+        return reply(false, 'The action errored. Check the server console.')
+    end
+    reply(res, err)
 end)
