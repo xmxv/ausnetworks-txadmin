@@ -156,12 +156,24 @@ const DialogAusnetView: React.FC = () => {
   });
   useNuiEvent<any>("setAusnetVehicleStorage", setStorage);
   useNuiEvent<any>("setAusnetActionResult", (r) => {
+    const LABELS: Record<string, string> = {
+      viewPlayer: "Opened inventory (read-only)",
+      openPlayer: "Opened inventory",
+      viewVehicle: "Opened vehicle storage",
+      wipePlayer: "Inventory wiped",
+      wipeVehicle: "Vehicle storage wiped",
+    };
     enqueueSnackbar(
-      r.ok ? `${r.action} done` : r.error || "Action failed",
+      r.ok ? LABELS[r.action] ?? `${r.action} done` : r.error || "Action failed",
       { variant: r.ok ? "success" : "error" }
     );
-    // A wipe changes what the panel is showing, so pull fresh data.
-    if (r.ok && String(r.action).startsWith("wipe")) load();
+    // A wipe changes what the panel is showing. Clear the open storage view
+    // as well as refetching - otherwise it keeps displaying the contents that
+    // were just destroyed, which reads as the wipe having failed.
+    if (r.ok && String(r.action).startsWith("wipe")) {
+      setStorage(null);
+      load();
+    }
   });
 
   const load = React.useCallback(() => {
@@ -300,18 +312,21 @@ const DialogAusnetView: React.FC = () => {
               size="small"
               label={
                 trust.available
-                  ? `${trust.level.toUpperCase()}${
-                      trust.score != null ? ` · ${trust.score}` : ""
+                  ? `AN ANTICHEAT · ${trust.level.toUpperCase()}${
+                      trust.score != null ? ` ${trust.score}` : ""
                     }`
-                  : "AN-ANTICHEAT · PENDING"
+                  : "AN ANTICHEAT"
               }
               sx={{
-                color: TRUST_COLOURS[trust.level as TrustLevel] ?? "#8b8b8b",
-                borderColor: TRUST_COLOURS[trust.level as TrustLevel] ?? "#2a2a2a",
-                background: "rgba(255,255,255,.03)",
-                border: "1px solid",
-                fontWeight: 600,
+                // The brand gradient, as used for primary actions. Black text
+                // because white fails contrast against the teal end.
+                backgroundImage:
+                  "linear-gradient(92deg, #00d2b4 0%, #2ee08a 35%, #ff2d92 75%, #ff8a1f 100%)",
+                color: "#000",
+                border: 0,
+                fontWeight: 700,
                 fontSize: 11.5,
+                letterSpacing: ".04em",
               }}
             />
           </Tooltip>

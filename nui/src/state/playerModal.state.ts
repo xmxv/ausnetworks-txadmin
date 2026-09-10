@@ -18,7 +18,9 @@ export enum PlayerModalTabs {
 
 const playerModalTabAtom = atom<PlayerModalTabs>({
   key: "playerModalTab",
-  default: PlayerModalTabs.ACTIONS,
+  //AusNetworks: the profile is the overview an admin wants before deciding
+  //what to do, so the modal opens there rather than on the action list.
+  default: PlayerModalTabs.AUSNET,
 });
 
 export const usePlayerModalTabValue = () => useRecoilValue(playerModalTabAtom);

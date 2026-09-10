@@ -25,7 +25,20 @@ RegisterNetEvent('txcl:ausnet:vehicleStorage', function(payload)
     sendMenuMessage('setAusnetVehicleStorage', payload)
 end)
 
+--- Actions that surface ox_inventory's own UI need the txAdmin menu out of
+--- the way first. NUI focus is exclusive: while the menu holds it,
+--- ox_inventory opens behind it and nothing appears, even though the server
+--- call succeeded and reported success. Closing the menu releases focus.
+local OPENS_INVENTORY_UI = {
+    viewPlayer = true,
+    openPlayer = true,
+    viewVehicle = true,
+}
+
 RegisterNUICallback('ausnetInventoryAction', function(data, cb)
+    if OPENS_INVENTORY_UI[data.action] then
+        toggleMenuVisibility(false)
+    end
     TriggerServerEvent('txsv:req:ausnet:inventoryAction', data.action, data)
     cb({})
 end)
