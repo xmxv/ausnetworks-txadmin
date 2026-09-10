@@ -92,6 +92,15 @@ export default class AdminStore {
             //an admin take items out of someone's pockets and destroy their
             //property with no undo, which is a different level of trust.
             'ausnet.inventory_manage': 'AusNet: Open & Wipe Inventories (destructive)',
+
+            //Authority anticheat. The in-game panel enforces these through ACE
+            //grants; they are listed here so the same names are granted from
+            //one place rather than two.
+            'authority.panel': 'Anticheat panel',
+            'authority.players': 'Anticheat: View Flagged Players',
+            'authority.config': 'Anticheat: Change Protection Settings',
+            'authority.enforce': 'Anticheat: Kick & Ban from the Panel',
+            'authority.whitelist': 'Anticheat: Add Exemptions',
         };
         //FIXME: pode remover, hardcode na cron function
         this.hardConfigs = {
